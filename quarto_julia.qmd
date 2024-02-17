@@ -5,6 +5,14 @@ format: html
 editor: source
 ---
 
+## 0. Setup Chunk
+
+```{r}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(readr)
+```
+
+
 ## 1. Data Exploration
 
 Text
