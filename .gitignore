@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+project.Rproj
+quarto_julia_files
+quarto_julia.html
