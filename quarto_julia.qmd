@@ -7,27 +7,193 @@ editor: source
 
 ## 0. Setup Chunk
 
+<<<<<<< HEAD
+Text
+
+```{r}
+#| output: false
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(readr, tidyverse, class)
+```
+
+=======
 ```{r}
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(readr)
 ```
 
 
+>>>>>>> 9c4c2b9d73b9e7c1d1a033cf9a9614dcadb0439a
 ## 1. Data Exploration
 
 Text
 
 ```{r}
-
+#| warning: false
+# import dataset
+breastcancer = read_csv("data/BreastCancer.csv", show_col_types = FALSE) %>%
+  select(-last_col())
+# remove irrelevant column added by trailing commas in file
 ```
+
+```{r}
+# explore features and labels
+str(breastcancer)
+```
+
+```{r}
+# continue exploration
+names(breastcancer)
+summary(breastcancer)
+```
+
+
+
+```{r}
+# check for missing values
+na_sum = sum(is.na(breastcancer))
+print(paste(na_sum, "NA's found."))
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+# visualize distribution of classes
+
+# visualize means
+breastcancer_means = pivot_longer(breastcancer %>% select(3:12), 
+                                  everything(), 
+                                  names_to = "Variable", 
+                                  values_to = "Value")
+ggplot(breastcancer_means, aes(x = Value)) +
+  geom_density(fill = "skyblue", color = "black", alpha = 0.5) +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the variable means")
+```
+
+Most means seem to be right-skewed. Thus, they will likely require some form of correction. Taking the logarithm is infeasible because of 0 values. Thus, square roots are shown below:
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+ggplot(breastcancer_means, aes(x = sqrt(Value))) +
+  geom_density(fill = "red", color = "black", alpha = 0.5) +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the square root transformation of the variable means")
+```
+
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+# visualize standard errors
+breastcancer_variances = pivot_longer(breastcancer %>% select(13:22), 
+                                  everything(), 
+                                  names_to = "Variable", 
+                                  values_to = "Value")
+ggplot(breastcancer_variances, aes(x = Value)) +
+  geom_density(fill = "skyblue", color = "black") +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the variable variances")
+```
+Similarly, the standard errors are also right-skewed. They could be fixed with a log-transformation, as standard errors are by definition > 0 (assuming there is variation).
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+ggplot(breastcancer_variances, aes(x = log(Value))) +
+  geom_density(fill = "red", color = "black", alpha = 0.5) +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the log transformations of the variable variances")
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+# visualize highest values
+breastcancer_worst = pivot_longer(breastcancer %>% select(23:32), 
+                                  everything(), 
+                                  names_to = "Variable", 
+                                  values_to = "Value")
+ggplot(breastcancer_worst, aes(x = Value)) +
+  geom_density(fill = "skyblue", color = "black") +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the highest values of the variables")
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+ggplot(breastcancer_worst, aes(x = sqrt(Value))) +
+  geom_density(fill = "red", color = "black", alpha = 0.5) +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the square root transformation of the highest values of the variables")
+```
+
+
+```{r}
+# compute descriptive statistics
+summary(breastcancer)
+malignant_share = sum(breastcancer$diagnosis == "M") / nrow(breastcancer)
+print(paste("The share of malignant cancers in the dataset is ", round(malignant_share, 3), ".", sep = ""))
+```
+
 
 ## 2. Data Preprocessing
 
 Text
 
 ```{r}
+# handle categorical variables appropriately, if present
 
+# change diagnosis to binary variable for easier interpretation
+breastcancer = breastcancer %>% 
+  mutate(malignant = if_else(diagnosis == "M", TRUE, FALSE)) %>%
+  select(-diagnosis) %>%
+  relocate(malignant, .before = 2)
 ```
+
+```{r}
+# perform variable selection, if required
+
+# remove id column
+breastcancer = breastcancer %>% select(-id)
+
+# other variables will be kept for now as they could theoretically all contribute to the result.
+```
+
+```{r}
+# standardize features
+standardize_col <- function(col) {
+    return(col - mean(col)) / sd(col)
+  }
+
+breastcancer = breastcancer %>%
+  mutate_at(vars(-malignant), ~ standardize_col(.))
+```
+
+
+```{r}
+# create training and testing sets
+set.seed(-12)
+train_size = floor(nrow(breastcancer) * 0.8)
+train_index = sample(1:nrow(breastcancer), train_size, replace = FALSE)
+test_index = setdiff(1:nrow(breastcancer), train_index)
+
+# prepare as dataframes
+bc_train = breastcancer[train_index, ]
+bc_test = breastcancer[test_index, ]
+
+# prepare matrixes and vectors
+bc_train_x = bc_train %>% select(-malignant) %>% as.matrix()
+bc_train_y = bc_train %>% pull(malignant)
+bc_test_x = bc_test %>% select(-malignant) %>% as.matrix()
+bc_test_y = bc_test %>% pull(malignant)
+
+print(paste("The training set contains", nrow(bc_train), "entries."))
+print(paste("The testing set contains", nrow(bc_test), "entries."))
+```
+
 
 ## 3. Model Selection & Model Evaluation
 
@@ -36,8 +202,55 @@ Text
 Text
 
 ```{r}
+# choose model parameters (K) using cross validation
+set.seed(-12)
 
+n = nrow(bc_train_x)
+K_max = floor(nrow(bc_train_x) * 0.25) # performance will most likely not improve by defining K above 25% of the dataset 
+nfolds = 10  # chosen to minimize variance while keeping bias low
+permutation = sample(1:n)  
+MSE_fold = matrix(0, nfolds, K_max)  
+accuracy_fold = matrix(0, nfolds, K_max) 
+recall_fold = matrix(0, nfolds, K_max) 
+precision_fold = matrix(0, nfolds, K_max) 
+
+# getting percentage correct and 
+for (j in 1:nfolds) {
+    test_index = permutation[floor((j-1)*n/nfolds+1) : floor(j*n/nfolds)]  
+    train_index = setdiff(1:n, test_index) 
+    for (K in 1:K_max) {
+        y_hat = knn(train = bc_train_x[train_index, ], 
+                    test = bc_train_x[test_index, ], 
+                    cl = bc_train_y[train_index], 
+                    k = K)
+        y_hat = as.logical(y_hat)
+        MSE_fold[j,K] = mean((bc_train_y[test_index] - y_hat)^2)  
+        accuracy_fold[j,K] = mean((bc_train_y[test_index] == y_hat))
+        recall_fold[j, K] = sum((bc_train_y[test_index] == y_hat) & (y_hat == TRUE)) / sum((bc_train_y[test_index] == TRUE))
+        precision_fold[j, K] = sum((bc_train_y[test_index] == y_hat) & (y_hat == TRUE)) / sum((y_hat == TRUE))
+    }
+}
+MSE_cv = colMeans(MSE_fold)
+accuracy = colMeans(accuracy_fold)
+recall = colMeans(recall_fold)
+precision = colMeans(precision_fold)
+evaluation = tibble(k = 1:K_max, accuracy, precision, recall)
 ```
+
+```{r}
+# visualize results for different K:
+ggplot(evaluation, aes(x = k)) +
+  geom_line(aes(y = accuracy), color = "blue") +
+  geom_line(aes(y = precision), color = "red") +
+  geom_line(aes(y = recall), color = "green") + 
+  geom_point(mapping = aes(x = which.max(accuracy), y = max(accuracy)), color = "blue", size = 3) + 
+  geom_point(mapping = aes(x = which.max(precision), y = max(precision)), color = "red", size = 3) + 
+  geom_point(mapping = aes(x = which.max(recall), y = max(recall)), color = "green", size = 3) + 
+  geom_text(mapping = aes(x = which.max(accuracy), y = max(accuracy), label = which.max(accuracy)), vjust = 1, hjust = 0) + 
+  geom_text(mapping = aes(x = which.max(precision), y = max(precision), label = which.max(precision)), vjust = 1, hjust = 0) + 
+  geom_text(mapping = aes(x = which.max(recall), y = max(recall), label = which.max(recall)), vjust = 1, hjust = 0)
+```
+
 
 ### 3.2 Random Forest
 
