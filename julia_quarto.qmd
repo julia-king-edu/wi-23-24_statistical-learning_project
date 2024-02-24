@@ -1,0 +1,460 @@
+---
+title: "Final Project"
+author: "Jördis Strack, Julia King"
+format: html
+editor: source
+---
+
+## 0. Setup Chunk
+
+Text
+
+```{r}
+#| output: false
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(readr, tidyverse, class, caret, bench, DataExplorer, randomForest)
+```
+
+## 1. Data Exploration
+
+Text
+
+```{r}
+#| warning: false
+# import dataset
+data = read_csv("data/BreastCancer.csv", show_col_types = FALSE)
+```
+
+```{r}
+# first overview
+head(data)
+```
+
+
+```{r}
+# explore features and labels
+str(data)
+```
+
+
+```{r}
+# continue exploration
+dim(data)
+```
+
+```{r}
+# count missing values per column
+missing_count_per_column <- colSums(is.na(data))
+missing_count_per_column
+
+# INTERPRETATION: There are only missing values for variable
+# data$...33 -> caused by trailing comma in csv
+
+data <- subset(data, select = -c(...33))
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+# visualize distribution of classes
+
+# visualize means
+data_means = pivot_longer(data %>% select(3:12), 
+                                  everything(), 
+                                  names_to = "Variable", 
+                                  values_to = "Value")
+ggplot(data_means, aes(x = Value)) +
+  geom_density(fill = "skyblue", color = "black", alpha = 0.5) +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the variable means")
+```
+
+Most means seem to be right-skewed. Thus, they will likely require some form of correction. Taking the logarithm is infeasible because of 0 values. Thus, square roots are shown below:
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+ggplot(data_means, aes(x = sqrt(Value))) +
+  geom_density(fill = "red", color = "black", alpha = 0.5) +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the square root transformation of the variable means")
+```
+
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+# visualize standard errors
+data_variances = pivot_longer(data %>% select(13:22), 
+                                  everything(), 
+                                  names_to = "Variable", 
+                                  values_to = "Value")
+ggplot(data_variances, aes(x = Value)) +
+  geom_density(fill = "skyblue", color = "black") +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the variable variances")
+```
+Similarly, the standard errors are also right-skewed. They could be fixed with a log-transformation, as standard errors are by definition > 0 (assuming there is variation).
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+ggplot(data_variances, aes(x = log(Value))) +
+  geom_density(fill = "red", color = "black", alpha = 0.5) +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the log transformations of the variable variances")
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+# visualize highest values
+data_worst = pivot_longer(data %>% select(23:32), 
+                                  everything(), 
+                                  names_to = "Variable", 
+                                  values_to = "Value")
+ggplot(data_worst, aes(x = Value)) +
+  geom_density(fill = "skyblue", color = "black") +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the highest values of the variables")
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+ggplot(data_worst, aes(x = sqrt(Value))) +
+  geom_density(fill = "red", color = "black", alpha = 0.5) +
+  facet_wrap(~Variable, scales = "free") +
+  labs(title = "Density Plots of the square root transformation of the highest values of the variables")
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+plot_intro(data)
+plot_correlation(data)
+```
+
+
+```{r}
+# compute descriptive statistics
+summary(data)
+
+# compute share of malignant cancers
+malignant_share = sum(data$diagnosis == "M") / nrow(data)
+print(paste("The share of malignant cancers in the dataset is ", round(malignant_share, 3), ".", sep = ""))
+```
+
+## 2. Data Preprocessing
+
+Text
+
+```{r}
+# handle categorical variables appropriately, if present
+
+# change diagnosis to binary variable for easier interpretation
+data = data %>% 
+  mutate(malignant = as.factor(if_else(diagnosis == "M", TRUE, FALSE))) %>%
+  select(-diagnosis) %>%
+  relocate(malignant, .before = 2)
+```
+
+```{r}
+# perform variable selection, if required
+
+# remove id column
+data = data %>% select(-id)
+
+# rename variables with whitespaces
+colnames(data) = sub(" ", "_", colnames(data))
+
+data = as.data.frame(data, names = TRUE)
+```
+
+```{r}
+# correlation analysis
+
+# calculate correlation matrix
+# correlation_matrix <- cor(data[,2:31])
+# correlation_matrix
+
+# find attributes that are highly corrected (ideally >0.75)
+# highly_correlated <- findCorrelation(correlation_matrix, cutoff=0.5)
+# highly_correlated
+```
+
+As seen above in step 1.4) we should most likely reduce the number of variables used for our classifier. This fits the results presented by the heat map of all variabels
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+# prepare training scheme
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+
+# train the model
+model <- train(malignant~., data=data, method="lvq", preProcess="scale", 
+                            trControl=control)
+
+# estimate variable importance
+importance <- varImp(model, scale=FALSE)
+
+# summarize importance
+importance
+
+# plot importance
+plot(importance)
+```
+
+```{r}
+# standardize features
+standardize_col <- function(col) {
+    return(col - mean(col)) / sd(col)
+  }
+
+data = data %>%
+  mutate_at(vars(-malignant), ~ standardize_col(.))
+```
+
+
+```{r}
+# create training and testing sets
+set.seed(-12)
+train_size = floor(nrow(data) * 0.8)
+train_index = sample(1:nrow(data), train_size, replace = FALSE)
+test_index = setdiff(1:nrow(data), train_index)
+
+# prepare as dataframes
+train_data = data[train_index, ]
+test_data = data[test_index, ]
+
+# prepare matrixes and vectors
+train_data_x = train_data %>% select(-malignant) %>% as.matrix()
+train_data_y = train_data %>% mutate(malignant = as.logical(malignant)) %>% pull(malignant)
+test_data_x = test_data %>% select(-malignant) %>% as.matrix()
+test_data_y = test_data %>% mutate(malignant = as.logical(malignant)) %>% pull(malignant)
+
+print(paste("The training set contains", nrow(train_data), "entries."))
+print(paste("The testing set contains", nrow(test_data), "entries."))
+```
+
+
+## 3. Model Selection & Model Evaluation
+
+### 3.1 K-Nearest Neighbors
+
+Text
+
+# define evaluation method for KNN for given dataset
+```{r}
+evaluate_KNN <- function(train_x, train_y, test_x, test_y, k_min = 1, k_max) {
+  k_range = k_min:k_max
+  mse = c()
+  accuracy = c()
+  precision = c()
+  recall = c()
+  n = nrow(test_x)
+  for (k in k_range) {
+    test_y_hat = knn(train = train_x, 
+                     test = test_x, 
+                     cl = train_y, 
+                     k = k)
+    test_y_hat = as.logical(test_y_hat)
+    pred_matrix = table(Actual = test_y, Predicted = test_y_hat)
+    # columns = predicted, rows = actual, 1 for false, 2 for true. EX: pred_matrix[1, 2] returns false positives
+    mse = c(mse, mean((test_y - test_y_hat)^2))
+    accuracy = c(accuracy, (pred_matrix[1, 1] + pred_matrix[2, 2]) / n)
+    precision = c(precision, (pred_matrix[2, 2]) / (pred_matrix[2, 2] + pred_matrix[1, 2]))
+    recall = c(recall, (pred_matrix[2, 2]) / (pred_matrix[2, 2] + pred_matrix[2, 1]))
+  }
+  results = data.frame(k_range, mse, accuracy, precision, recall)
+  return(results)
+}
+evaluate_KNN(train_x = train_data_x, train_y = train_data_y, test_x = test_data_x, test_y = test_data_y, k_max = 11)
+```
+
+
+
+```{r}
+
+# choose model parameters (K) using cross validation
+set.seed(-12)
+
+n = nrow(train_data_x)
+K_max = floor(nrow(train_data_x) * 0.25) # performance will most likely not improve by defining K above 25% of the dataset 
+nfolds = 10  # chosen to minimize variance while keeping bias low
+permutation = sample(1:n)  
+MSE_fold = matrix(0, nfolds, K_max)  
+accuracy_fold = matrix(0, nfolds, K_max) 
+recall_fold = matrix(0, nfolds, K_max) 
+precision_fold = matrix(0, nfolds, K_max) 
+
+# getting percentage correct and 
+for (j in 1:nfolds) {
+    test_index = permutation[floor((j-1)*n/nfolds+1) : floor(j*n/nfolds)]  
+    train_index = setdiff(1:n, test_index) 
+    for (K in 1:K_max) {
+        y_hat = knn(train = train_data_x[train_index, ], 
+                    test = train_data_x[test_index, ], 
+                    cl = train_data_y[train_index], 
+                    k = K)
+        y_hat = as.logical(y_hat)
+        MSE_fold[j,K] = mean((train_data_y[test_index] - y_hat)^2)  
+        accuracy_fold[j,K] = mean((train_data_y[test_index] == y_hat))
+        recall_fold[j, K] = sum((train_data_y[test_index] == y_hat) & (y_hat == TRUE)) / sum((train_data_y[test_index] == TRUE))
+        precision_fold[j, K] = sum((train_data_y[test_index] == y_hat) & (y_hat == TRUE)) / sum((y_hat == TRUE))
+    }
+}
+MSE_cv = colMeans(MSE_fold)
+accuracy = colMeans(accuracy_fold)
+recall = colMeans(recall_fold)
+precision = colMeans(precision_fold)
+knn_evaluation = tibble(k = 1:K_max, accuracy, precision, recall)
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+# visualize results for different K:
+ggplot(knn_evaluation, aes(x = k)) +
+  geom_line(aes(y = accuracy), 
+            color = "blue") +
+  geom_line(aes(y = precision), 
+            color = "red") +
+  geom_line(aes(y = recall), 
+            color = "green") + 
+  geom_point(mapping = aes(x = which.max(accuracy), y = max(accuracy)), 
+             color = "blue", size = 3) + 
+  geom_point(mapping = aes(x = which.max(precision), y = max(precision)), 
+             color = "red", size = 3) + 
+  geom_point(mapping = aes(x = which.max(recall), y = max(recall)), 
+             color = "green", size = 3) + 
+  geom_text(mapping = aes(x = which.max(accuracy), y = max(accuracy), 
+            label = which.max(accuracy)), 
+            vjust = 1, hjust = 0) + 
+  geom_text(mapping = aes(x = which.max(precision), y = max(precision), 
+            label = which.max(precision)), 
+            vjust = 1, hjust = 0) + 
+  geom_text(mapping = aes(x = which.max(recall), y = max(recall), 
+            label = which.max(recall)), 
+            vjust = 1, hjust = 0)
+```
+
+### 3.2 Random Forest
+
+```{r}
+# set up model on training data
+RF_model <- randomForest(
+  formula = malignant ~ .,
+  data = train_data
+)
+
+RF_model
+```
+
+Looks pretty good! Train data set model accuracy is roughly 96,26%. Go ahead to prediction and confusion matrix
+
+```{r}
+pred_RF_train <- predict(RF_model, train_data)
+confusionMatrix(pred_RF_train, train_data$malignant)
+```
+
+Mini analysis:
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+# visualize the tree size 
+hist(treesize(RF_model),
+     main = "Nodes used for tree construction",
+     col = "palegreen")
+
+# again, look at importance of predictors
+varImpPlot(RF_model,
+           sort = T,
+           n.var = 30,
+           main = "Importance of predictors")
+
+importance(RF_model)
+```
+
+Wow, this looks so different!!
+
+```{r}
+# prediction for test data
+# pred_RF_test <- predict(RF_model, test_data)
+# confusionMatrix(pred_RF_test, test_data$malignant)
+```
+
+Setup of cross-validation
+
+```{r}
+nfolds = 10
+
+accuracy_fold <- numeric(nfolds)
+precision_fold <- numeric(nfolds)
+recall_fold <- numeric(nfolds)
+f1_fold <- numeric(nfolds)
+
+# Prepare train/test splits for Cross Validation
+set.seed(-12)
+permutation = sample(1:nrow(train_data))
+
+# perform Cross Validation
+
+for (j in 1:nfolds){
+  test_indices <- permutation[((j - 1) * nrow(train_data) / nfolds + 1) : (j * nrow(train_data) / nfolds)]
+  train_indices <- setdiff(1:nrow(train_data), test_indices)
+
+  # obtain training and testing folds
+  train_fold <- train_data[train_indices, ]
+  test_fold <- train_data[test_indices, ]
+  
+  # fit Random Forest model on training fold
+  RF_model <- randomForest(
+    formula = malignant ~ .,
+    data = train_fold
+  )
+  
+  # predict on pseudo-test folds
+  pred <- predict(RF_model, test_fold)
+  
+  # obtain evaluation metrics for the fold
+  cm <- confusionMatrix(data = pred, reference = test_fold$malignant)
+  accuracy_fold[j] <- cm$overall["Accuracy"]
+  precision_fold[j] <- cm$byClass["Precision"][1]  # precision for class 'M'
+  recall_fold[j] <- cm$byClass["Recall"][1]  # recall for class 'M'
+  f1_fold[j] <- cm$byClass["F1"][1]  # F1 Score for class 'M'
+}
+
+# compute mean of evaluation metrics across folds
+mean_accuracy <- mean(accuracy_fold)
+mean_precision <- mean(precision_fold)
+mean_recall <- mean(recall_fold)
+mean_f1 <- mean(f1_fold)
+
+cat("Mean Accuracy:", mean_accuracy, "\n")
+cat("Mean Precision:", mean_precision, "\n")
+cat("Mean Recall:", mean_recall, "\n")
+cat("Mean F1 Score:", mean_f1, "\n")
+```
+
+## 4. Fine-Tuning
+
+Text
+
+```{r}
+tuned_RF_model <- tuneRF(train_data[,-5], train_data[,5],
+            stepFactor = 0.5,
+            plot = TRUE,
+            ntreeTry = 110, # <- I've played around with it & 110 seems to be highest
+            trace = TRUE,
+            improve = 0.05)
+```
+
+## 5. Final Model Selection
+
+Text
+
+```{r}
+
+```
