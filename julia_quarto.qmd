@@ -529,6 +529,12 @@ train_data_x_pca = prcomp(train_data_x, scale = TRUE)
 pve = get_PVE(train_data_x_pca)
 p90 = which(cumsum(pve) > 0.9)[1]
 
+biplot(train_data_x_pca, scale = 0)
+```
+
+Hard to read but it's again evident that a lot of variables correlate highly and thus pca might be very efficient at reducing size.
+
+```{r}
 ggplot(mapping = aes(x = 1:length(pve), y = cumsum(pve))) + 
   geom_line() + 
   geom_abline(slope = 0, intercept = 0.9, linetype = "dashed") + 
