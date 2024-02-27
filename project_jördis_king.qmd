@@ -7,8 +7,6 @@ editor: source
 
 ## 0. Setup Chunk
 
-Text
-
 ```{r}
 #| output: false
 if (!require("pacman")) install.packages("pacman")
@@ -17,7 +15,7 @@ pacman::p_load(readr, tidyverse, class, caret, bench, DataExplorer, randomForest
 
 ## 1. Data Exploration
 
-Text
+### 1.1 Loading the dataset
 
 ```{r}
 #| warning: false
@@ -25,22 +23,24 @@ Text
 data = read_csv("data/BreastCancer.csv", show_col_types = FALSE)
 ```
 
+### 1.2 Exploring features and labels
+
 ```{r}
 # first overview
 head(data)
 ```
-
 
 ```{r}
 # explore features and labels
 str(data)
 ```
 
-
 ```{r}
 # continue exploration
 dim(data)
 ```
+
+### 1.3 Checking for missing values
 
 ```{r}
 # count missing values per column
@@ -52,6 +52,8 @@ missing_count_per_column
 
 data <- subset(data, select = -c(...33))
 ```
+
+### 1.4 Visualizing the distribution of classes and features
 
 ```{r}
 #| fig-width: 9
@@ -80,7 +82,6 @@ ggplot(data_means, aes(x = sqrt(Value))) +
   labs(title = "Density Plots of the square root transformation of the variable means")
 ```
 
-
 ```{r}
 #| fig-width: 9
 #| fig-height: 7
@@ -94,7 +95,8 @@ ggplot(data_variances, aes(x = Value)) +
   facet_wrap(~Variable, scales = "free") +
   labs(title = "Density Plots of the variable variances")
 ```
-Similarly, the standard errors are also right-skewed. They could be fixed with a log-transformation, as standard errors are by definition > 0 (assuming there is variation).
+
+Similarly, the standard errors are also right-skewed. They could be fixed with a log-transformation, as standard errors are by definition \> 0 (assuming there is variation).
 
 ```{r}
 #| fig-width: 9
@@ -135,6 +137,7 @@ plot_intro(data)
 plot_correlation(data)
 ```
 
+### 1.5 Computing descriptive statistics
 
 ```{r}
 # compute descriptive statistics
@@ -147,11 +150,11 @@ print(paste("The share of malignant cancers in the dataset is ", round(malignant
 
 ## 2. Data Preprocessing
 
-Text
+Note: Splitting the dataset is done after all other preprocessing steps
+
+### 2.1 Handling categorical variables
 
 ```{r}
-# handle categorical variables appropriately, if present
-
 # change diagnosis to binary variable for easier interpretation
 data = data %>% 
   mutate(malignant = as.factor(if_else(diagnosis == "M", TRUE, FALSE))) %>%
@@ -159,9 +162,9 @@ data = data %>%
   relocate(malignant, .before = 2)
 ```
 
-```{r}
-# perform variable selection, if required
+### 2.2 Performing variable selection
 
+```{r}
 # remove id column
 data = data %>% select(-id)
 
@@ -170,20 +173,6 @@ colnames(data) = sub(" ", "_", colnames(data))
 
 data = as.data.frame(data, names = TRUE)
 ```
-
-```{r}
-# correlation analysis
-
-# calculate correlation matrix
-# correlation_matrix <- cor(data[,2:31])
-# correlation_matrix
-
-# find attributes that are highly corrected (ideally >0.75)
-# highly_correlated <- findCorrelation(correlation_matrix, cutoff=0.5)
-# highly_correlated
-```
-
-As seen above in step 1.4) we should most likely reduce the number of variables used for our classifier. This fits the results presented by the heat map of all variabels
 
 ```{r}
 #| fig-width: 9
@@ -205,6 +194,8 @@ importance
 plot(importance)
 ```
 
+### 2.3 Standardize features
+
 ```{r}
 # standardize features
 
@@ -212,6 +203,7 @@ data = data %>%
   mutate_at(vars(-malignant), ~ scale(.))
 ```
 
+### 2.4 Split into training and testing sets
 
 ```{r}
 # create training and testing sets
@@ -234,6 +226,8 @@ print(paste("The training set contains", nrow(train_data), "entries."))
 print(paste("The testing set contains", nrow(test_data), "entries."))
 ```
 
+### 2.5 Prepare Principal Component Analysis
+
 ```{r}
 # prepare pca
 pca_obj = prcomp(train_data_x, scale = TRUE)
@@ -243,21 +237,21 @@ get_PVE = function(pca_out) {
 }
 
 pca_obj = prcomp(train_data_x, scale = TRUE)
-pve = get_PVE(pca_obj)
-```
-
-
-
-```{r}
-# choose cutoff level for percentage of variance explained
-pve_percent = 0.9
-pca_cutoff = which(cumsum(pve) > pve_percent)[1]
 
 biplot(pca_obj, scale = 0)
 ```
 
+```{r}
+# find cutoff level for chosen percentage of variance explained
+
+pve = get_PVE(pca_obj)
+
+pve_percent = 0.9
+pca_cutoff = which(cumsum(pve) > pve_percent)[1]
+```
 
 ```{r}
+# plot cumulative function of percentage of variance explained, including cutoff
 ggplot(mapping = aes(x = 1:length(pve), y = cumsum(pve))) + 
   geom_line() + 
   geom_abline(slope = 0, intercept = pve_percent, linetype = "dashed") + 
@@ -268,21 +262,38 @@ ggplot(mapping = aes(x = 1:length(pve), y = cumsum(pve))) +
 ```
 
 ```{r}
-# 
+# select principal components in training set and transform testing set 
 test_data_x_pca = scale(test_data_x) %*% pca_obj$rotation[, 1:pca_cutoff]
 train_data_x_pca = pca_obj$x[, 1:pca_cutoff]
 ```
 
+```{r}
+# convert train_data_x_pca into data frame for Random Forest
+train_data_x_pca_DF <- as.data.frame(train_data_x_pca)
+test_data_x_pca_DF <- as.data.frame(test_data_x_pca)
+
+# add y = malignant
+train_data_pca_RF <- cbind(train_data_x_pca_DF, malignant = train_data_y)
+test_data_pca_RF <- cbind(test_data_x_pca_DF, malignant = test_data_y)
+
+train_data_pca_RF$malignant <- train_data_y
+test_data_pca_RF$malignant <- test_data_y
+```
 
 
 ## 3. Model Selection & Model Evaluation
 
 ### 3.1 K-Nearest Neighbors
 
-Text
+#### 3.1.1 Defining Evaluation and Cross-Validation Functions
 
 ```{r}
+# define evaluation function
+
 evaluate_KNN <- function(train_x, train_y, test_x, test_y, k_range = 1:10, seed = -12) {
+  #' for a given training and testing set, computes the mse, accuracy, precision and recall values for all k within the specified range.
+  #' Returns a dataframe containing the above estimates for each k.
+  
   # check input validity
   if (nrow(train_x) != length(train_y)) {
     stop("Number of elements in classification array train_y does not match number of rows in train_x.")
@@ -327,6 +338,9 @@ evaluate_KNN <- function(train_x, train_y, test_x, test_y, k_range = 1:10, seed 
 
 ```{r}
 cross_validate_knn <- function(x, y, n_splits = 10, k_range = 1:10, seed = -12) {
+  #' For a given training dataset (split into x and y, with x containing the data and y the correct classifications), conducts cross-validation of the KNN algorithm. Utilizes evaluate_KNN, meaning a k_range can be specified. The number of splits can be specified as well.
+  #' Returns a dataframe containing the averages of the evaluation metrics returned by evaluate_KNN.
+
   # validate inputs
   if ((nrow(x) != length(y)) | (length(y) == 0)) {
     stop("Number of elements in classification array train_y does not match number of rows in train_x or is empty.")
@@ -372,50 +386,108 @@ cross_validate_knn <- function(x, y, n_splits = 10, k_range = 1:10, seed = -12) 
 }
 ```
 
+#### 3.1.2 Running Cross-Validation on regular dataset
 
 ```{r}
-# run cross-validation
-knn_eval_cv = cross_validate_knn(train_data_x, train_data_y, 
+# run cross-validation with regular dataset
+knn_eval_cv_reg = cross_validate_knn(train_data_x, train_data_y, 
                                     n_splits = 10, k_range = 1:(nrow(train_data_x) %/% 3))
 ```
 
-# todo: cross validate with pca
+```{r}
+# define visualization function (done as a function, as it will be reused for pca)
+visualize_knn_cv_results <- function(knn_cv_results, title) {
+  #' given a dataframe returned by cross_validate_knn, plots the result of said function.
+  #' Plots the progression of the evaluation metrics, as well as the highest point for each metric.
+  
+  # visualize results for different K:
+  ggplot(knn_cv_results, aes(x = k)) +
+    geom_line(aes(y = accuracy, color = "Accuracy")) +
+    geom_line(aes(y = precision, color = "Precision")) +
+    geom_line(aes(y = recall, color = "Recall")) + 
+    
+    # add points where the metrics are maiximized
+    geom_point(aes(x = k[which.max(accuracy)], y = max(accuracy), color = "Accuracy"), size = 3) + 
+    geom_point(aes(x = k[which.max(precision)], y = max(precision), color = "Precision"), size = 3) +
+    geom_point(aes(x = k[which.max(recall)], y = max(recall), color = "Recall"), size = 3) + 
+    
+    # add text to the points indicating the k required to reach said maximum
+    geom_text(aes(x = which.max(accuracy), y = max(accuracy), 
+                  label = paste("(", k[which.max(accuracy)], ",", round(max(accuracy), 3), ")", sep = "")), 
+              vjust = 2, hjust = 0) + 
+    geom_text(aes(x = which.max(precision), y = max(precision), 
+                  label = paste("(", k[which.max(precision)], ",", round(max(precision), 3), ")", sep = "")), 
+              vjust = 1.5, hjust = 0) + 
+    geom_text(aes(x = which.max(recall), y = max(recall), 
+                  label = paste("(", k[which.max(recall)], ",", round(max(recall), 3), ")", sep = "")), 
+              vjust = 1.5, hjust = 0) + 
+    
+    # add titles, legend & colors
+    labs(title = title,
+         x = "k",
+         y = "score",
+         color = "Metric") +
+    scale_color_manual(values = c("Accuracy" = "blue", "Precision" = "red", "Recall" = "green"),
+                       labels = c("Accuracy", "Precision", "Recall"))
+}
+```
 
 ```{r}
 #| fig-width: 9
 #| fig-height: 7
-# visualize results for different K:
-ggplot(knn_eval_cv, aes(x = k)) +
-  geom_line(aes(y = accuracy, color = "Accuracy")) +
-  geom_line(aes(y = precision, color = "Precision")) +
-  geom_line(aes(y = recall, color = "Recall")) + 
-  # add points where the metrics are maiximized
-  geom_point(aes(x = k[which.max(accuracy)], y = max(accuracy), color = "Accuracy"), size = 3) + 
-  geom_point(aes(x = k[which.max(precision)], y = max(precision), color = "Precision"), size = 3) + 
-  geom_point(aes(x = k[which.max(recall)], y = max(recall), color = "Recall"), size = 3) + 
-  # add text to the points indicating the k required to reach said maximum
-  geom_text(aes(x = which.max(accuracy), y = max(accuracy), 
-                label = paste("(", k[which.max(accuracy)], ",", round(max(accuracy), 3), ")", sep = "")), 
-            vjust = 2, hjust = 0) + 
-  geom_text(aes(x = which.max(precision), y = max(precision), 
-                label = paste("(", k[which.max(precision)], ",", round(max(precision), 3), ")", sep = "")), 
-            vjust = 1.5, hjust = 0) + 
-  geom_text(aes(x = which.max(recall), y = max(recall), 
-                label = paste("(", k[which.max(recall)], ",", round(max(recall), 3), ")", sep = "")), 
-            vjust = 1.5, hjust = 0) + 
-  # add titles, legend & colors
-  labs(title = "Cross-validation results of KNN on training data",
-       x = "k",
-       y = "score",
-       color = "Metric") +
-  scale_color_manual(values = c("Accuracy" = "blue", "Precision" = "red", "Recall" = "green"),
-                     labels = c("Accuracy", "Precision", "Recall"))
+
+# visualize regular results
+visualize_knn_cv_results(knn_eval_cv_reg, "Cross-validation results of KNN on standardized training data")
 ```
 
+#### 3.1.3 Running Cross-Validation on PCA data
 
-# todo: visualize pca results
+```{r}
+# run cross-validation with pca data
+knn_eval_cv_pca = cross_validate_knn(train_data_x_pca, train_data_y, 
+                                    n_splits = 10, k_range = 1:(nrow(train_data_x) %/% 3))
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+
+# visualize
+visualize_knn_cv_results(knn_eval_cv_pca, "Cross-validation results of KNN on features obtained by PCA")
+```
+
+#### 3.1.4 Selecting best-performing k's & saving evaluation metrics
+
+```{r}
+# keep ideal k for further testing
+k_reg = knn_eval_cv_reg %>% filter(recall == max(recall)) %>% pull(k)
+k_pca = knn_eval_cv_pca %>% filter(recall == max(recall)) %>% pull(k)
+```
+
+```{r}
+# establish comparison table 
+# include best results from regular data
+cv_results = knn_eval_cv_reg %>% 
+  filter(k == k_reg) %>% 
+  mutate(model = "KNN (regular)") %>% 
+  select(model, accuracy, precision, recall) %>%
+  # merge with best results from pca
+  bind_rows( 
+    knn_eval_cv_pca %>% 
+      filter(k == k_pca) %>% 
+      mutate(model = "KNN (PCA)") %>% 
+      select(model, accuracy, precision, recall)
+  )
+
+cv_results
+```
+
+This will later be completed with the CV results from Random Forest.
+
 
 ### 3.2 Random Forest
+
+#### 3.2.1 Fitting Random Forest model on PCA-transformed data
 
 ```{r}
 # set up model on training data
@@ -427,7 +499,7 @@ RF_model <- randomForest(
 RF_model
 ```
 
-Looks pretty good! Train data set model accuracy is roughly 96,26%. Go ahead to prediction and confusion matrix
+Training data set model accuracy is roughly 96,26%. Go ahead to prediction and confusion matrix
 
 ```{r}
 pred_RF_train <- predict(RF_model, train_data)
@@ -453,13 +525,78 @@ varImpPlot(RF_model,
 importance(RF_model)
 ```
 
-Wow, this looks so different!!
+todo: Put nice comment discussing the differences between the trees.
+
+#### 3.2.2 Fitting Random Forest model on PCA-transformed data
 
 ```{r}
-# prediction for test data
-# pred_RF_test <- predict(RF_model, test_data)
-# confusionMatrix(pred_RF_test, test_data$malignant)
+# Fit Random Forest model on PCA-transformed data
+RF_model_PCA <- randomForest(
+  formula = malignant ~ .,
+  data = train_data_pca_RF
+)
+RF_model_PCA
+
+# Predict on training data
+pred_RF_train_PCA <- predict(RF_model_PCA, train_data_pca_RF, type='response')
+
+preds = ifelse(pred_RF_train_PCA > 0.5, "TRUE", "FALSE")
+preds = as.factor(preds)
+
+confusionMatrix(preds, as.factor(train_data_pca_RF$malignant))
 ```
+
+#### 3.2.2. Fitting Random Forest model on PCA-transformed data
+
+```{r}
+# Fit Random Forest model on PCA-transformed data
+RF_model_PCA_test <- randomForest(
+  formula = malignant ~ .,
+  data = test_data_pca_RF
+)
+RF_model_PCA_test
+
+# Predict on training data
+pred_RF_test_PCA <- predict(RF_model_PCA_test, test_data_pca_RF, type='response')
+
+preds_test = ifelse(pred_RF_test_PCA > 0.5, "TRUE", "FALSE")
+preds_test = as.factor(preds_test)
+
+PCA_conf_RF <- confusionMatrix(preds_test, as.factor(test_data_pca_RF$malignant))
+PCA_conf_RF
+```
+
+And of course, for comparison a small model analysis of the Random Forest.
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+# visualize the tree size 
+hist(treesize(RF_model_PCA),
+     main = "Nodes used for tree construction",
+     col = "palegreen")
+
+# again, look at importance of predictors
+varImpPlot(RF_model_PCA,
+           sort = T,
+           n.var = 30,
+           main = "Importance of predictors")
+
+importance(RF_model_PCA)
+```
+Finally, obtain performance metrics for PCA test data:
+
+```{r}
+accuracy <- PCA_conf_RF$overall['Accuracy']
+F1_score <- PCA_conf_RF$byClass['F1']
+recall <- PCA_conf_RF$byClass['Sensitivity']
+
+# metrics
+cat("Accuracy:", accuracy, "\n")
+cat("F1 Score:", F1_score, "\n")
+cat("Recall (Sensitivity):", recall, "\n")
+```
+
 
 Setup of cross-validation
 
@@ -514,15 +651,40 @@ cat("Mean Recall:", mean_recall, "\n")
 cat("Mean F1 Score:", mean_f1, "\n")
 ```
 
-# todo: apply to pca set and visualize results
+#### 3.2.3 Saving evaluation metrics
 
-## 4. Fine-Tuning
+```{r}
+# add CV results of Random Forest with regular data
+cv_results = cv_results %>%
+  bind_rows(
+    tibble(model = "Random Forest (regular)", accuracy = mean_accuracy, precision = mean_precision, recall = mean_recall)
+  )
+```
 
-## 4.1 KNN
 
-# todo
+### 3.3 Comparing the model performances
 
-## 4.2 Random Forest
+```{r}
+#| fig-width: 9
+#| fig-height: 5
+# visualize
+
+cv_results %>%
+  pivot_longer(cols = -model) %>%
+  ggplot(mapping = aes(x = model, y = value, fill = model)) +
+  geom_bar(stat = "identity") + 
+  facet_grid(. ~ name) + 
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) + 
+  labs(y = "Evaluation Metric Value", fill = "Model / Data Combination") + 
+  coord_cartesian(ylim=c(0.9,1))
+
+```
+
+todo: conclusion on why we chose random forest
+
+## 4. Fine-Tuning the Random Forest
 
 We fine-tune the Random Forest using grid-search, this time with more options for RF hyperparameters, which are:
 
@@ -620,8 +782,6 @@ final_RF_model <- randomForest(
 
 Run fine-tuned Random Forest on test data
 
-**NOTE:** This is the final prediction on the test data already!!
-
 ```{r}
 # predict ^ obtain predictions as probabilities
 pred_test <- predict(final_RF_model, newdata = test_data)
@@ -663,12 +823,12 @@ pred_prob_true <- pred_prob[, "TRUE"]
 # Calculate precision and recall
 pr_values <- pr.curve(scores.class0 = pred_prob_true, weights.class0 = ifelse(test_data$malignant == "TRUE", 1, 0), curve=TRUE)
 
-plot(pr_values)
+plot(pr_values, col='black')
 
 # Compute ROC curve
 roc_values <- roc.curve(scores.class0 = pred_prob_true, weights.class0 = ifelse(test_data$malignant == "TRUE", 1, 0), curve = TRUE)
 
-plot(roc_values)
+plot(roc_values, col='black')
 ```
 
 ## 7. Appendix
