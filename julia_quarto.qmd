@@ -207,12 +207,9 @@ plot(importance)
 
 ```{r}
 # standardize features
-standardize_col <- function(col) {
-    return(col - mean(col)) / sd(col)
-  }
 
 data = data %>%
-  mutate_at(vars(-malignant), ~ standardize_col(.))
+  mutate_at(vars(-malignant), ~ scale(.))
 ```
 
 
@@ -496,7 +493,7 @@ tuned_RF_model <- tuneRF(train_data[,-5], train_data[,5],
             improve = 0.05)
 ```
 
-## 5. Final Model Selection & Fine-Tuning
+## 5. Final Model Selection
 
 Text
 
@@ -527,7 +524,9 @@ get_PVE = function(pca_out) {
 
 train_data_x_pca = prcomp(train_data_x, scale = TRUE)
 pve = get_PVE(train_data_x_pca)
-p90 = which(cumsum(pve) > 0.9)[1]
+
+knn_pca_percent = 0.9
+knn_pca_cutoff = which(cumsum(pve) > knn_pca_percent)[1]
 
 biplot(train_data_x_pca, scale = 0)
 ```
@@ -537,10 +536,10 @@ Hard to read but it's again evident that a lot of variables correlate highly and
 ```{r}
 ggplot(mapping = aes(x = 1:length(pve), y = cumsum(pve))) + 
   geom_line() + 
-  geom_abline(slope = 0, intercept = 0.9, linetype = "dashed") + 
-  geom_point(mapping = aes(x = p90, y = cumsum(pve)[p90])) + 
-  geom_text(mapping = aes(x = p90, y = cumsum(pve)[p90], 
-                          label = paste("(", p90, ", ", round(cumsum(pve)[p90], 3), ")", sep = "")), 
+  geom_abline(slope = 0, intercept = knn_pca_percent, linetype = "dashed") + 
+  geom_point(mapping = aes(x = knn_pca_cutoff, y = cumsum(pve)[knn_pca_cutoff])) + 
+  geom_text(mapping = aes(x = knn_pca_cutoff, y = cumsum(pve)[knn_pca_cutoff], 
+                          label = paste("(", knn_pca_cutoff, ", ", round(cumsum(pve)[knn_pca_cutoff], 3), ")", sep = "")), 
             vjust = 1.5, hjust = 0)
 
 ```
@@ -549,11 +548,11 @@ ggplot(mapping = aes(x = 1:length(pve), y = cumsum(pve))) +
 # apply evaluations to pca
 # continue here
 
-# train_data_x_pca$x[, 1:p90]
+# train_data_x_pca$x[, 1:knn_pca_cutoff]
 
-test_data_x_pca = scale(test_data_x) %*% train_data_x_pca$rotation[, 1:p90]
+test_data_x_pca = scale(test_data_x) %*% train_data_x_pca$rotation[, 1:knn_pca_cutoff]
 
-knn_eval_pca = evaluate_KNN(train_x = train_data_x_pca$x[, 1:p90], train_y = train_data_y, 
+knn_eval_pca = evaluate_KNN(train_x = train_data_x_pca$x[, 1:knn_pca_cutoff], train_y = train_data_y, 
                                       test_x = test_data_x_pca, test_y = test_data_y, 
                                       k_range = k)
 knn_eval_pca
