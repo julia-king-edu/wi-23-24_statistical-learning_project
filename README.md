@@ -1,6 +1,7 @@
 # Statistical Learning - Final Project
-## Submission by Jördis Strack, Julia King
-## Seminar by Prof. Termeh Shafie
+
+- Submission by Jördis Strack, Julia King
+- Seminar by Prof. Termeh Shafie
 
 Welcome!
 
