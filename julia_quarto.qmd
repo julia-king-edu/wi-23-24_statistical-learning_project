@@ -12,7 +12,7 @@ Text
 ```{r}
 #| output: false
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(readr, tidyverse, class, caret, bench, DataExplorer, randomForest, pROC)
+pacman::p_load(readr, tidyverse, class, caret, bench, DataExplorer, randomForest, PRROC)
 ```
 
 ## 1. Data Exploration
@@ -595,25 +595,19 @@ knn_predictions = knn(train = train_data_x,
                       k = k, 
                       prob = TRUE)
 
-knn_probabilities = attr(knn_predictions, "prob")
+knn_probabilities = ifelse(as.logical(knn_predictions), attr(knn_predictions, "prob"), 1 - attr(knn_predictions, "prob"))
 
 knn_compare = data.frame(y_true = test_data_y, y_pred = knn_probabilities) %>%
   arrange(desc(y_pred)) # start with predictions of 1 and end with those of 0
 ```
 
-
 ```{r}
-# roc curve for best k
+roc_obj = roc(response = knn_compare$y_true, predictor = knn_compare$y_pred)
+# compute auc value
+auc_value = auc(roc_obj)
 
-roc_data <- knn_compare %>%
-  mutate(true_positive = cumsum(y_true == 1) / sum(y_true == 1),
-         false_positive = cumsum(y_true == 0) / sum(y_true == 0))
-
-ggplot(roc_data, aes(x = false_positive, y = true_positive)) +
-  geom_line() +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +  # Diagonal line
-  labs(x = "False Positive Rate", y = "True Positive Rate", title = "ROC Curve of knn with k = 6")
-
+# plot results
+plot(roc_obj, main = "ROC curve of KNN")
+legend("bottomright", legend = paste("AUC = ", auc_value))
 ```
 
-Please let this not be the real curve.
