@@ -12,7 +12,7 @@ Text
 ```{r}
 #| output: false
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(readr, tidyverse, class, caret, bench, DataExplorer, randomForest)
+pacman::p_load(readr, tidyverse, class, caret, bench, DataExplorer, randomForest, pROC)
 ```
 
 ## 1. Data Exploration
@@ -246,98 +246,141 @@ Text
 
 # define evaluation method for KNN for given dataset
 ```{r}
-evaluate_KNN <- function(train_x, train_y, test_x, test_y, k_min = 1, k_max) {
-  k_range = k_min:k_max
+evaluate_KNN <- function(train_x, train_y, test_x, test_y, k_range = 1:10, seed = -12) {
+  # check input validity
+  if (nrow(train_x) != length(train_y)) {
+    stop("Number of elements in classification array train_y does not match number of rows in train_x.")
+  }
+  if (nrow(test_x) != length(test_y)) {
+    stop("Number of elements in classification array test_y does not match number of rows in test_x.")
+  }
+  if (min(k_range < 1)) {
+    stop("Minimum of k_range must be >= 1.")
+  }
+  if (nrow(train_x) <= max(k_range)) {
+    stop("Maximum of k_range is too large for specified nr. of splits and dataset size.")
+  }
+  # define variables
   mse = c()
   accuracy = c()
   precision = c()
   recall = c()
   n = nrow(test_x)
+  
+  # run knn & compute prediction matrix
   for (k in k_range) {
     test_y_hat = knn(train = train_x, 
                      test = test_x, 
                      cl = train_y, 
                      k = k)
     test_y_hat = as.logical(test_y_hat)
-    pred_matrix = table(Actual = test_y, Predicted = test_y_hat)
-    # columns = predicted, rows = actual, 1 for false, 2 for true. EX: pred_matrix[1, 2] returns false positives
+    pred_matrix = table(Actual = test_y, Predicted = test_y_hat) # columns = predicted, rows = actual, 1 for false, 2 for true. EX: pred_matrix[1, 2] returns false positives
+    
+    # compute evaluation criteria
     mse = c(mse, mean((test_y - test_y_hat)^2))
     accuracy = c(accuracy, (pred_matrix[1, 1] + pred_matrix[2, 2]) / n)
     precision = c(precision, (pred_matrix[2, 2]) / (pred_matrix[2, 2] + pred_matrix[1, 2]))
     recall = c(recall, (pred_matrix[2, 2]) / (pred_matrix[2, 2] + pred_matrix[2, 1]))
   }
-  results = data.frame(k_range, mse, accuracy, precision, recall)
+  
+  # combine results & return 
+  results = data.frame(k = k_range, mse, accuracy, precision, recall)
   return(results)
 }
-evaluate_KNN(train_x = train_data_x, train_y = train_data_y, test_x = test_data_x, test_y = test_data_y, k_max = 11)
 ```
 
+```{r}
+cross_validate_knn <- function(x, y, n_splits = 10, k_range = 1:10, seed = -12) {
+  # validate inputs
+  if ((nrow(x) != length(y)) | (length(y) == 0)) {
+    stop("Number of elements in classification array train_y does not match number of rows in train_x or is empty.")
+  }
+  if (n_splits < 1) {
+    stop("Number of splits must be larger than 0.")
+  }
+  if (min(k_range < 1)) {
+    stop("Minimum of k_range must be >= 1.")
+  }
+  if (floor(nrow(x) * (1 - (1 / n_splits))) <= max(k_range)) { # k_range exceeds size of training set in one or more of the splits
+    stop("Maximum of k_range is too large for specified nr. of splits and dataset size.")
+  }
+  
+  # initialize variables
+  len = nrow(x)
+  result = data.frame(k = numeric(), 
+                      mse = numeric(), 
+                      accuracy = numeric(), 
+                      precision = numeric(), 
+                      recall = numeric())
+  
+  # shuffle dataset (index)
+  set.seed(seed)
+  indexes = sample(1:len)
+  
+  for (i in 1:n_splits) {
+    # split dataset indexes 
+    test_index = indexes[floor((i-1)*len/n_splits+1) : floor(i*len/n_splits)]  
+    train_index = setdiff(1:len, test_index) 
+    # run evaluate_knn
+    current_results = evaluate_KNN(train_x = x[train_index, ], train_y = y[train_index], 
+                                   test_x = x[test_index, ], test_y = y[test_index], 
+                                   k_range = k_range)
+    # combine dataframes
+    result = rbind(result, current_results)
+  }
+  # calculate averages and return 
+  result = result %>% 
+    group_by(k) %>% 
+    summarise(across(everything(), mean))
+  return(result)
+}
+```
 
 
 ```{r}
-
-# choose model parameters (K) using cross validation
-set.seed(-12)
-
-n = nrow(train_data_x)
-K_max = floor(nrow(train_data_x) * 0.25) # performance will most likely not improve by defining K above 25% of the dataset 
-nfolds = 10  # chosen to minimize variance while keeping bias low
-permutation = sample(1:n)  
-MSE_fold = matrix(0, nfolds, K_max)  
-accuracy_fold = matrix(0, nfolds, K_max) 
-recall_fold = matrix(0, nfolds, K_max) 
-precision_fold = matrix(0, nfolds, K_max) 
-
-# getting percentage correct and 
-for (j in 1:nfolds) {
-    test_index = permutation[floor((j-1)*n/nfolds+1) : floor(j*n/nfolds)]  
-    train_index = setdiff(1:n, test_index) 
-    for (K in 1:K_max) {
-        y_hat = knn(train = train_data_x[train_index, ], 
-                    test = train_data_x[test_index, ], 
-                    cl = train_data_y[train_index], 
-                    k = K)
-        y_hat = as.logical(y_hat)
-        MSE_fold[j,K] = mean((train_data_y[test_index] - y_hat)^2)  
-        accuracy_fold[j,K] = mean((train_data_y[test_index] == y_hat))
-        recall_fold[j, K] = sum((train_data_y[test_index] == y_hat) & (y_hat == TRUE)) / sum((train_data_y[test_index] == TRUE))
-        precision_fold[j, K] = sum((train_data_y[test_index] == y_hat) & (y_hat == TRUE)) / sum((y_hat == TRUE))
-    }
-}
-MSE_cv = colMeans(MSE_fold)
-accuracy = colMeans(accuracy_fold)
-recall = colMeans(recall_fold)
-precision = colMeans(precision_fold)
-knn_evaluation = tibble(k = 1:K_max, accuracy, precision, recall)
+# run cross-validation
+knn_eval_cv = cross_validate_knn(train_data_x, train_data_y, 
+                                    n_splits = 10, k_range = 1:(nrow(train_data_x) %/% 3))
 ```
+
+
 
 ```{r}
 #| fig-width: 9
 #| fig-height: 7
 # visualize results for different K:
-ggplot(knn_evaluation, aes(x = k)) +
-  geom_line(aes(y = accuracy), 
-            color = "blue") +
-  geom_line(aes(y = precision), 
-            color = "red") +
-  geom_line(aes(y = recall), 
-            color = "green") + 
-  geom_point(mapping = aes(x = which.max(accuracy), y = max(accuracy)), 
-             color = "blue", size = 3) + 
-  geom_point(mapping = aes(x = which.max(precision), y = max(precision)), 
-             color = "red", size = 3) + 
-  geom_point(mapping = aes(x = which.max(recall), y = max(recall)), 
-             color = "green", size = 3) + 
-  geom_text(mapping = aes(x = which.max(accuracy), y = max(accuracy), 
-            label = which.max(accuracy)), 
-            vjust = 1, hjust = 0) + 
-  geom_text(mapping = aes(x = which.max(precision), y = max(precision), 
-            label = which.max(precision)), 
-            vjust = 1, hjust = 0) + 
-  geom_text(mapping = aes(x = which.max(recall), y = max(recall), 
-            label = which.max(recall)), 
-            vjust = 1, hjust = 0)
+ggplot(knn_eval_cv, aes(x = k)) +
+  geom_line(aes(y = accuracy, color = "Accuracy")) +
+  geom_line(aes(y = precision, color = "Precision")) +
+  geom_line(aes(y = recall, color = "Recall")) + 
+  # add points where the metrics are maiximized
+  geom_point(aes(x = k[which.max(accuracy)], y = max(accuracy), color = "Accuracy"), size = 3) + 
+  geom_point(aes(x = k[which.max(precision)], y = max(precision), color = "Precision"), size = 3) + 
+  geom_point(aes(x = k[which.max(recall)], y = max(recall), color = "Recall"), size = 3) + 
+  # add text to the points indicating the k required to reach said maximum
+  geom_text(aes(x = which.max(accuracy), y = max(accuracy), 
+                label = paste("(", k[which.max(accuracy)], ",", round(max(accuracy), 3), ")", sep = "")), 
+            vjust = 2, hjust = 0) + 
+  geom_text(aes(x = which.max(precision), y = max(precision), 
+                label = paste("(", k[which.max(precision)], ",", round(max(precision), 3), ")", sep = "")), 
+            vjust = 1.5, hjust = 0) + 
+  geom_text(aes(x = which.max(recall), y = max(recall), 
+                label = paste("(", k[which.max(recall)], ",", round(max(recall), 3), ")", sep = "")), 
+            vjust = 1.5, hjust = 0) + 
+  # add titles, legend & colors
+  labs(title = "Cross-validation results of KNN on training data",
+       x = "k",
+       y = "score",
+       color = "Metric") +
+  scale_color_manual(values = c("Accuracy" = "blue", "Precision" = "red", "Recall" = "green"),
+                     labels = c("Accuracy", "Precision", "Recall"))
 ```
+
+```{r}
+# keep ideal k for further testing
+k = knn_eval_cv$k[which.max(knn_eval_cv$recall)]
+```
+
 
 ### 3.2 Random Forest
 
@@ -443,6 +486,8 @@ cat("Mean F1 Score:", mean_f1, "\n")
 Text
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 7
 tuned_RF_model <- tuneRF(train_data[,-5], train_data[,5],
             stepFactor = 0.5,
             plot = TRUE,
@@ -451,10 +496,119 @@ tuned_RF_model <- tuneRF(train_data[,-5], train_data[,5],
             improve = 0.05)
 ```
 
-## 5. Final Model Selection
+## 5. Final Model Selection & Fine-Tuning
 
 Text
 
 ```{r}
 
 ```
+
+## 5.1 KNN
+
+```{r}
+# evaluate on testing data
+
+knn_eval_test = evaluate_KNN(train_x = train_data_x, train_y = train_data_y, 
+                                      test_x = test_data_x, test_y = test_data_y, 
+                                      k_range = k)
+knn_eval_test
+```
+
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+# pca for lower dimensionality
+
+get_PVE = function(pca_out) {
+  pca_out$sdev ^ 2 / sum(pca_out$sdev ^ 2)
+}
+
+train_data_x_pca = prcomp(train_data_x, scale = TRUE)
+pve = get_PVE(train_data_x_pca)
+p90 = which(cumsum(pve) > 0.9)[1]
+
+ggplot(mapping = aes(x = 1:length(pve), y = cumsum(pve))) + 
+  geom_line() + 
+  geom_abline(slope = 0, intercept = 0.9, linetype = "dashed") + 
+  geom_point(mapping = aes(x = p90, y = cumsum(pve)[p90])) + 
+  geom_text(mapping = aes(x = p90, y = cumsum(pve)[p90], 
+                          label = paste("(", p90, ", ", round(cumsum(pve)[p90], 3), ")", sep = "")), 
+            vjust = 1.5, hjust = 0)
+
+```
+
+```{r}
+# apply evaluations to pca
+# continue here
+
+# train_data_x_pca$x[, 1:p90]
+
+test_data_x_pca = scale(test_data_x) %*% train_data_x_pca$rotation[, 1:p90]
+
+knn_eval_pca = evaluate_KNN(train_x = train_data_x_pca$x[, 1:p90], train_y = train_data_y, 
+                                      test_x = test_data_x_pca, test_y = test_data_y, 
+                                      k_range = k)
+knn_eval_pca
+```
+
+```{r}
+# visualize normal test and pca test to see if dataset reduction costs performance
+knn_eval = knn_eval_cv %>% 
+  mutate(category = "Cross-Validation") %>% 
+  filter(k == .GlobalEnv$k) %>%
+  bind_rows(knn_eval_pca %>% mutate(category = "test set (PCA)")) %>%
+  bind_rows(knn_eval_test %>% mutate(category = "test set (regular)")) %>%
+  select(-k)
+```
+
+ precision is 1 for pca?
+ 
+```{r}
+#| fig-width: 9
+#| fig-height: 5
+# visualize
+knn_eval %>%
+  pivot_longer(cols = -category) %>%
+  ggplot(mapping = aes(x = category, y = value, fill = category)) +
+  geom_bar(stat = "identity") + 
+  ylim(0, NA) + 
+  facet_grid(. ~ name) + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+ 
+
+
+```{r}
+#calculate predicted values for knn
+knn_predictions = knn(train = train_data_x, 
+                      test = test_data_x, 
+                      cl = train_data_y, 
+                      k = k, 
+                      prob = TRUE)
+
+knn_probabilities = attr(knn_predictions, "prob")
+
+knn_compare = data.frame(y_true = test_data_y, y_pred = knn_probabilities) %>%
+  arrange(desc(y_pred)) # start with predictions of 1 and end with those of 0
+```
+
+
+```{r}
+# roc curve for best k
+
+roc_data <- knn_compare %>%
+  mutate(true_positive = cumsum(y_true == 1) / sum(y_true == 1),
+         false_positive = cumsum(y_true == 0) / sum(y_true == 0))
+
+ggplot(roc_data, aes(x = false_positive, y = true_positive)) +
+  geom_line() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +  # Diagonal line
+  labs(x = "False Positive Rate", y = "True Positive Rate", title = "ROC Curve of knn with k = 6")
+
+```
+
+Please let this not be the real curve.
