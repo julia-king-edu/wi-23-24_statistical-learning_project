@@ -1,6 +1,6 @@
 # Statistical Learning - Final Project
 
-- Submission by Jördis Strack, Julia King
+- Submission by [Jördis Strack](https://github.com/joerdisstrack), [Julia King](https://github.com/julia-king-edu)
 - Seminar by Prof. Termeh Shafie
 
 Welcome!
