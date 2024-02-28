@@ -93,7 +93,7 @@ data_variances = pivot_longer(data %>% select(13:22),
 ggplot(data_variances, aes(x = Value)) +
   geom_density(fill = "skyblue", color = "black") +
   facet_wrap(~Variable, scales = "free") +
-  labs(title = "Density Plots of the variable variances")
+  labs(title = "Density Plots of the variable standard deviations")
 ```
 
 Similarly, the standard errors are also right-skewed. They could be fixed with a log-transformation, as standard errors are by definition \> 0 (assuming there is variation).
@@ -104,7 +104,7 @@ Similarly, the standard errors are also right-skewed. They could be fixed with a
 ggplot(data_variances, aes(x = log(Value))) +
   geom_density(fill = "red", color = "black", alpha = 0.5) +
   facet_wrap(~Variable, scales = "free") +
-  labs(title = "Density Plots of the log transformations of the variable variances")
+  labs(title = "Density Plots of the log transformations of the variable square roots")
 ```
 
 ```{r}
@@ -134,7 +134,7 @@ ggplot(data_worst, aes(x = sqrt(Value))) +
 #| fig-width: 9
 #| fig-height: 7
 plot_intro(data)
-plot_correlation(data)
+plot_correlation(data, title = "Correlation Heatmap of all variables")
 ```
 
 ### 1.5 Computing descriptive statistics
@@ -258,7 +258,9 @@ ggplot(mapping = aes(x = 1:length(pve), y = cumsum(pve))) +
   geom_point(mapping = aes(x = pca_cutoff, y = cumsum(pve)[pca_cutoff])) + 
   geom_text(mapping = aes(x = pca_cutoff, y = cumsum(pve)[pca_cutoff], 
                           label = paste("(", pca_cutoff, ", ", round(cumsum(pve)[pca_cutoff], 3), ")", sep = "")), 
-            vjust = 1.5, hjust = 0)
+            vjust = 1.5, hjust = 0) + 
+  labs(x = "Nr. of included principal components", y = "Sum of explained variance") + 
+  ggtitle("Cumulative proportion of variance explained per number of principal components")
 ```
 
 ```{r}
@@ -608,6 +610,11 @@ precision_fold <- numeric(nfolds)
 recall_fold <- numeric(nfolds)
 f1_fold <- numeric(nfolds)
 
+accuracy_fold_PCA <- numeric(nfolds)
+precision_fold_PCA <- numeric(nfolds)
+recall_fold_PCA <- numeric(nfolds)
+f1_fold_PCA <- numeric(nfolds)
+
 # Prepare train/test splits for Cross Validation
 set.seed(-12)
 permutation = sample(1:nrow(train_data))
@@ -622,28 +629,62 @@ for (j in 1:nfolds){
   train_fold <- train_data[train_indices, ]
   test_fold <- train_data[test_indices, ]
   
+  train_fold_PCA <- train_data_pca_RF[train_indices, ]
+  test_fold_PCA <- train_data_pca_RF[test_indices, ]
+  
   # fit Random Forest model on training fold
   RF_model <- randomForest(
     formula = malignant ~ .,
     data = train_fold
   )
   
+  ### NOTE: I am suppressing warnings here, since RF (especially in combination with PCA) makes use of regression and the reduction of features to fewer principle components might affect the model structurally and could cause overfitting. We are aware of this and consider it in the analysis but it makes the output look a bit convoluted!
+  
+  suppressWarnings({
+  # RF_model_PCA
+  RF_model_PCA <- randomForest(
+  formula = malignant ~ .,
+  data = train_fold_PCA
+  )})
+  
   # predict on pseudo-test folds
   pred <- predict(RF_model, test_fold)
   
+  # Predict on training data
+  pred_RF_test_PCA <- predict(RF_model_PCA, test_fold_PCA, type='response')
+  
+  preds_test = ifelse(pred_RF_test_PCA > 0.5, "TRUE",  "FALSE")
+  preds_test = as.factor(preds_test)
+
   # obtain evaluation metrics for the fold
   cm <- confusionMatrix(data = pred, reference = test_fold$malignant)
   accuracy_fold[j] <- cm$overall["Accuracy"]
   precision_fold[j] <- cm$byClass["Precision"][1]  # precision for class 'M'
   recall_fold[j] <- cm$byClass["Recall"][1]  # recall for class 'M'
   f1_fold[j] <- cm$byClass["F1"][1]  # F1 Score for class 'M'
-}
 
+  # obtain confusion matrix for PCA
+  cm_PCA <- confusionMatrix(data = preds_test, reference = as.factor(test_fold_PCA$malignant))
+  accuracy_fold_PCA[j] <- cm_PCA$overall["Accuracy"]
+  precision_fold_PCA[j] <- cm_PCA$byClass["Precision"][1]  # precision for class 'M'
+  recall_fold_PCA[j] <- cm_PCA$byClass["Recall"][1]  # recall for class 'M'
+  f1_fold_PCA[j] <- cm_PCA$byClass["F1"][1]  # F1 Score for class 'M'
+}
+```
+And compute performance metrics:
+
+```{r}
 # compute mean of evaluation metrics across folds
 mean_accuracy <- mean(accuracy_fold)
 mean_precision <- mean(precision_fold)
 mean_recall <- mean(recall_fold)
 mean_f1 <- mean(f1_fold)
+
+# compute mean of evaluation metrics across folds
+mean_accuracy_pca <- mean(accuracy_fold_PCA)
+mean_precision_pca <- mean(precision_fold_PCA)
+mean_recall_pca <- mean(recall_fold_PCA)
+mean_f1_pca <- mean(f1_fold_PCA)
 
 cat("Mean Accuracy:", mean_accuracy, "\n")
 cat("Mean Precision:", mean_precision, "\n")
@@ -658,6 +699,9 @@ cat("Mean F1 Score:", mean_f1, "\n")
 cv_results = cv_results %>%
   bind_rows(
     tibble(model = "Random Forest (regular)", accuracy = mean_accuracy, precision = mean_precision, recall = mean_recall)
+  ) %>%
+  bind_rows(
+    tibble(model = "Random Forest (PCA)", accuracy = mean_accuracy_pca, precision = mean_precision_pca, recall = mean_recall_pca)
   )
 ```
 
@@ -674,11 +718,11 @@ cv_results %>%
   ggplot(mapping = aes(x = model, y = value, fill = model)) +
   geom_bar(stat = "identity") + 
   facet_grid(. ~ name) + 
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
+  theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank()) + 
-  labs(y = "Evaluation Metric Value", fill = "Model / Data Combination") + 
-  coord_cartesian(ylim=c(0.9,1))
+  labs(y = "Evaluation Metric Value", x = "", fill = "Model / Data Combination") + 
+  coord_cartesian(ylim=c(0.9,1)) + 
+  ggtitle("Comparison of evaluation metrics of the different methods and datasets")
 
 ```
 
