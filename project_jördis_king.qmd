@@ -1,5 +1,5 @@
 ---
-title: "Final Project"
+title: "Statistical Learning - Final Project"
 author: "Jördis Strack, Julia King"
 format: html
 editor: source
@@ -46,10 +46,11 @@ dim(data)
 # count missing values per column
 missing_count_per_column <- colSums(is.na(data))
 missing_count_per_column
+```
 
-# INTERPRETATION: There are only missing values for variable
-# data$...33 -> caused by trailing comma in csv
+We only observe missing data in one column, data$...33. This "variable" is caused by trailing commas in the csv file and can safely be dropped.
 
+```{r}
 data <- subset(data, select = -c(...33))
 ```
 
@@ -58,8 +59,6 @@ data <- subset(data, select = -c(...33))
 ```{r}
 #| fig-width: 9
 #| fig-height: 7
-# visualize distribution of classes
-
 # visualize means
 data_means = pivot_longer(data %>% select(3:12), 
                                   everything(), 
@@ -71,7 +70,7 @@ ggplot(data_means, aes(x = Value)) +
   labs(title = "Density Plots of the variable means")
 ```
 
-Most means seem to be right-skewed. Thus, they will likely require some form of correction. Taking the logarithm is infeasible because of 0 values. Thus, square roots are shown below:
+Most means seem to be right-skewed. Thus, we consider some form of correction. Taking the logarithm is not possible because of values <= 0. The square roots of the variables are shown below:
 
 ```{r}
 #| fig-width: 9
@@ -96,7 +95,7 @@ ggplot(data_variances, aes(x = Value)) +
   labs(title = "Density Plots of the variable standard deviations")
 ```
 
-Similarly, the standard errors are also right-skewed. They could be fixed with a log-transformation, as standard errors are by definition \> 0 (assuming there is variation).
+Similarly, the standard errors are also right-skewed. We could apply log-transformation, as standard errors are by definition \> 0 (assuming there is variation).
 
 ```{r}
 #| fig-width: 9
@@ -121,6 +120,8 @@ ggplot(data_worst, aes(x = Value)) +
   labs(title = "Density Plots of the highest values of the variables")
 ```
 
+Similarly, we take the square roots of these variables to see if that helps.
+
 ```{r}
 #| fig-width: 9
 #| fig-height: 7
@@ -129,6 +130,10 @@ ggplot(data_worst, aes(x = sqrt(Value))) +
   facet_wrap(~Variable, scales = "free") +
   labs(title = "Density Plots of the square root transformation of the highest values of the variables")
 ```
+
+Sadly, in a lot of cases, the reshaped variables still suffer from skewness, sometimes even in the opposite direction of the original variables. 
+
+Additionally, one of the algorithms applied later is a distance-based algorithm, meaning these transformations can change the distances between points, potentially altering the results. Thus we will refrain from applying log and/or square root transformations.
 
 ```{r}
 #| fig-width: 9
@@ -142,7 +147,10 @@ plot_correlation(data, title = "Correlation Heatmap of all variables")
 ```{r}
 # compute descriptive statistics
 summary(data)
+```
 
+
+```{r}
 # compute share of malignant cancers
 malignant_share = sum(data$diagnosis == "M") / nrow(data)
 print(paste("The share of malignant cancers in the dataset is ", round(malignant_share, 3), ".", sep = ""))
@@ -189,7 +197,10 @@ importance <- varImp(model, scale=FALSE)
 
 # summarize importance
 importance
+```
 
+
+```{r}
 # plot importance
 plot(importance)
 ```
@@ -202,6 +213,8 @@ plot(importance)
 data = data %>%
   mutate_at(vars(-malignant), ~ scale(.))
 ```
+
+We rescale all variables so that the k-nearest-neighbors algorithm can function correctly. This should not have an impact on the performance of the random forest algorithm. 
 
 ### 2.4 Split into training and testing sets
 
@@ -228,6 +241,8 @@ print(paste("The testing set contains", nrow(test_data), "entries."))
 
 ### 2.5 Prepare Principal Component Analysis
 
+In addition to the regular dataset, we will also apply the two methods on a dataset constructed using Principal Component Analysis. By applying PCA, we aim to reduce noise in the data and thus obtain more accurate classifications. Additionally, using the PCA dataset with k-nearest-neighbors would result in increased efficiency, as fewer dimensions also means that the distance calculations are less computationally expensive.
+
 ```{r}
 # prepare pca
 pca_obj = prcomp(train_data_x, scale = TRUE)
@@ -249,6 +264,8 @@ pve = get_PVE(pca_obj)
 pve_percent = 0.9
 pca_cutoff = which(cumsum(pve) > pve_percent)[1]
 ```
+
+We choose to drop the principal components not required to explain 90% of the variance. This reduces the size of the dataset significantly and should provide us with a dataset with less noise.
 
 ```{r}
 # plot cumulative function of percentage of variance explained, including cutoff
@@ -288,6 +305,8 @@ test_data_pca_RF$malignant <- test_data_y
 ### 3.1 K-Nearest Neighbors
 
 #### 3.1.1 Defining Evaluation and Cross-Validation Functions
+
+We define an evaluation function and a cross-validation function for knn. These are defined as functions for increased code clarity and so that the cross-validations of the regular and the PCA dataset are conducted consistently.
 
 ```{r}
 # define evaluation function
@@ -527,9 +546,9 @@ varImpPlot(RF_model,
 importance(RF_model)
 ```
 
-todo: Put nice comment discussing the differences between the trees.
-
 #### 3.2.2 Fitting Random Forest model on PCA-transformed data
+
+Note: The reduction of features to fewer principle components might affect the model structurally and could cause overfitting. We are aware of this and consider it in the analysis
 
 ```{r}
 # Fit Random Forest model on PCA-transformed data
@@ -726,7 +745,11 @@ cv_results %>%
 
 ```
 
-todo: conclusion on why we chose random forest
+The methods all achieve high scores in all three categories. However, as noted in the report, we believe that maximizing recall is the primary task of this project, as we want as many malignant cancers to be treated as possible. Thus, we will fine-tune the random forest algorithm, as it outperforms KNN by about 3 percentage points. 
+
+By choosing the random forest algorithm, we select an algorihtm that Works well with small sample sizes and with high correlations between predictors. Additionally, they are less prone to overfitting. 
+
+Additionally, we will continue with the regular dataset, as the PCA dataset performed slightly worse with regards to all three evaluation criteria.
 
 ## 4. Fine-Tuning the Random Forest
 
@@ -816,15 +839,7 @@ final_RF_model <- randomForest(
 )
 ```
 
-## 5. Final Model Selection
-
-\*\*Advantages of Random Forests:\*\* Works well with small sample sizes and issues with high correlations between predictors. Additionally, they are less prone to overfitting.
-
-\*\*Disadvantages of Random Forests:\*\* Loss of interpretability
-
-## 6. Applying to test dataset
-
-Run fine-tuned Random Forest on test data
+## 5. Applying to test dataset
 
 ```{r}
 # predict ^ obtain predictions as probabilities
@@ -849,8 +864,9 @@ cat("Final Precision:", test_precision, "\n")
 cat("Final Recall:", test_recall, "\n")
 cat("Final MSE:", test_mse, "\n")
 ```
+Our final model performs very accurately on the test dataset. Most notably, we achieve a perfect recall!
 
-And finally, compute some Analytics and visualize!!
+Finally, we compute some analytics and visualize them.
 
 ```{r}
 #| fig-width: 9
@@ -875,9 +891,10 @@ roc_values <- roc.curve(scores.class0 = pred_prob_true, weights.class0 = ifelse(
 plot(roc_values, col='black')
 ```
 
-## 7. Appendix
+## 6. Appendix
 
-Let's check if we obtain the same results after selecting only the most important variables!
+In our analysis, we have worked with a dataset with 30 dependent variables and have obtained a highly accurate model. However, this also means that the classification of new cancers requires measuring/computing all 30 variables. This can be very time-consuming. 
+Thus, we wanted to check if we obtain the same results after selecting only the most important variables.
 
 ```{r}
 # subset data
@@ -932,4 +949,4 @@ cat("Final MSE:", test_mse_subset, "\n")
 
 ```
 
-Performance decreases - it is thus adviced to let the random forest compute the Gini Impurities and let it sort through the different variables itself than us 'prepruning' it by limiting its selection of variables.
+We find that the performance decreases - it is thus advised to let the random forest compute the Gini Impurities and let it sort through the different variables itself rather than us 'pre-pruning' it by limiting its selection of variables.
