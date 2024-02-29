@@ -58,16 +58,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="project_jördis_king_files/libs/clipboard/clipboard.min.js"></script>
-<script src="project_jördis_king_files/libs/quarto-html/quarto.js"></script>
-<script src="project_jördis_king_files/libs/quarto-html/popper.min.js"></script>
-<script src="project_jördis_king_files/libs/quarto-html/tippy.umd.min.js"></script>
-<script src="project_jördis_king_files/libs/quarto-html/anchor.min.js"></script>
-<link href="project_jördis_king_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="project_jördis_king_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="project_jördis_king_files/libs/bootstrap/bootstrap.min.js"></script>
-<link href="project_jördis_king_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="project_jördis_king_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="project_strack_king_files/libs/clipboard/clipboard.min.js"></script>
+<script src="project_strack_king_files/libs/quarto-html/quarto.js"></script>
+<script src="project_strack_king_files/libs/quarto-html/popper.min.js"></script>
+<script src="project_strack_king_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="project_strack_king_files/libs/quarto-html/anchor.min.js"></script>
+<link href="project_strack_king_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="project_strack_king_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="project_strack_king_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="project_strack_king_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="project_strack_king_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 
 
 </head>
@@ -275,7 +275,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Variable, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
 <span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Density Plots of the variable means"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid" width="864"></p>
 </div>
 </div>
 <p>Most means seem to be right-skewed. Thus, we consider some form of correction. Taking the logarithm is not possible because of values &lt;= 0. The square roots of the variables are shown below:</p>
@@ -285,7 +285,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Variable, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Density Plots of the square root transformation of the variable means"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid" width="864"></p>
 </div>
 </div>
 <div class="cell">
@@ -299,7 +299,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Variable, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
 <span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Density Plots of the variable standard deviations"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="864"></p>
 </div>
 </div>
 <p>Similarly, the standard errors are also right-skewed. We could apply log-transformation, as standard errors are by definition &gt; 0 (assuming there is variation).</p>
@@ -312,7 +312,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>Warning: Removed 24 rows containing non-finite values (`stat_density()`).</code></pre>
 </div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid" width="864"></p>
 </div>
 </div>
 <div class="cell">
@@ -326,7 +326,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Variable, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
 <span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Density Plots of the highest values of the variables"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid" width="864"></p>
 </div>
 </div>
 <p>Similarly, we take the square roots of these variables to see if that helps.</p>
@@ -336,7 +336,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Variable, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Density Plots of the square root transformation of the highest values of the variables"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid" width="864"></p>
 </div>
 </div>
 <p>Sadly, in a lot of cases, the reshaped variables still suffer from skewness, sometimes even in the opposite direction of the original variables.</p>
@@ -344,11 +344,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_intro</span>(data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid" width="864"></p>
 </div>
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_correlation</span>(data, <span class="at">title =</span> <span class="st">"Correlation Heatmap of all variables"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-14-2.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-14-2.png" class="img-fluid" width="864"></p>
 </div>
 </div>
 </section>
@@ -495,7 +495,7 @@ smoothness_worst         0.7534</code></pre>
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot importance</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(importance)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid" width="672"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
 </section>
@@ -553,7 +553,7 @@ smoothness_worst         0.7534</code></pre>
 <span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a><span class="fu">biplot</span>(pca_obj, <span class="at">scale =</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid" width="672"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
 <div class="cell">
@@ -577,7 +577,7 @@ smoothness_worst         0.7534</code></pre>
 <span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Nr. of included principal components"</span>, <span class="at">y =</span> <span class="st">"Sum of explained variance"</span>) <span class="sc">+</span> </span>
 <span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Cumulative proportion of variance explained per number of principal components"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid" width="672"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
 <div class="cell">
@@ -752,7 +752,7 @@ smoothness_worst         0.7534</code></pre>
 <div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># visualize regular results</span></span>
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="fu">visualize_knn_cv_results</span>(knn_eval_cv_reg, <span class="st">"Cross-validation results of KNN on standardized training data"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-32-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-32-1.png" class="img-fluid" width="864"></p>
 </div>
 </div>
 </section>
@@ -767,7 +767,7 @@ smoothness_worst         0.7534</code></pre>
 <div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># visualize</span></span>
 <span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="fu">visualize_knn_cv_results</span>(knn_eval_cv_pca, <span class="st">"Cross-validation results of KNN on features obtained by PCA"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-34-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-34-1.png" class="img-fluid" width="864"></p>
 </div>
 </div>
 </section>
@@ -873,7 +873,7 @@ Prediction FALSE TRUE
 <span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Nodes used for tree construction"</span>,</span>
 <span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>     <span class="at">col =</span> <span class="st">"palegreen"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-39-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-39-1.png" class="img-fluid" width="864"></p>
 </div>
 <div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="co"># again, look at importance of predictors</span></span>
 <span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="fu">varImpPlot</span>(RF_model,</span>
@@ -881,7 +881,7 @@ Prediction FALSE TRUE
 <span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>           <span class="at">n.var =</span> <span class="dv">30</span>,</span>
 <span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>           <span class="at">main =</span> <span class="st">"Importance of predictors"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-39-2.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-39-2.png" class="img-fluid" width="864"></p>
 </div>
 <div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">importance</span>(RF_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1051,7 +1051,7 @@ Prediction FALSE TRUE
 <span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Nodes used for tree construction"</span>,</span>
 <span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>     <span class="at">col =</span> <span class="st">"palegreen"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-42-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-42-1.png" class="img-fluid" width="864"></p>
 </div>
 <div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="co"># again, look at importance of predictors</span></span>
 <span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a><span class="fu">varImpPlot</span>(RF_model_PCA,</span>
@@ -1059,7 +1059,7 @@ Prediction FALSE TRUE
 <span id="cb71-4"><a href="#cb71-4" aria-hidden="true" tabindex="-1"></a>           <span class="at">n.var =</span> <span class="dv">30</span>,</span>
 <span id="cb71-5"><a href="#cb71-5" aria-hidden="true" tabindex="-1"></a>           <span class="at">main =</span> <span class="st">"Importance of predictors"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-42-2.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-42-2.png" class="img-fluid" width="864"></p>
 </div>
 <div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="fu">importance</span>(RF_model_PCA)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1225,7 +1225,7 @@ PC7      5.149084</code></pre>
 <span id="cb90-11"><a href="#cb90-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">ylim=</span><span class="fu">c</span>(<span class="fl">0.9</span>,<span class="dv">1</span>)) <span class="sc">+</span> </span>
 <span id="cb90-12"><a href="#cb90-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Comparison of evaluation metrics of the different methods and datasets"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-47-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-47-1.png" class="img-fluid" width="864"></p>
 </div>
 </div>
 <p>The methods all achieve high scores in all three categories. However, as noted in the report, we believe that maximizing recall is the primary task of this project, as we want as many malignant cancers to be treated as possible. Thus, we will fine-tune the random forest algorithm, as it outperforms KNN by about 3 percentage points.</p>
@@ -1370,14 +1370,14 @@ PC7      5.149084</code></pre>
 <span id="cb106-11"><a href="#cb106-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb106-12"><a href="#cb106-12" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(pr_values, <span class="at">col=</span><span class="st">'black'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-54-1.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-54-1.png" class="img-fluid" width="864"></p>
 </div>
 <div class="sourceCode cell-code" id="cb107"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb107-1"><a href="#cb107-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute ROC curve</span></span>
 <span id="cb107-2"><a href="#cb107-2" aria-hidden="true" tabindex="-1"></a>roc_values <span class="ot">&lt;-</span> <span class="fu">roc.curve</span>(<span class="at">scores.class0 =</span> pred_prob_true, <span class="at">weights.class0 =</span> <span class="fu">ifelse</span>(test_data<span class="sc">$</span>malignant <span class="sc">==</span> <span class="st">"TRUE"</span>, <span class="dv">1</span>, <span class="dv">0</span>), <span class="at">curve =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb107-3"><a href="#cb107-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb107-4"><a href="#cb107-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(roc_values, <span class="at">col=</span><span class="st">'black'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="project_jördis_king_files/figure-html/unnamed-chunk-54-2.png" class="img-fluid" width="864"></p>
+<p><img src="project_strack_king_files/figure-html/unnamed-chunk-54-2.png" class="img-fluid" width="864"></p>
 </div>
 </div>
 </section>
